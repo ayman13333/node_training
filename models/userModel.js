@@ -34,6 +34,12 @@ const userSchema=new mongoose.Schema({
             },
             message:'password and passwordConfirm must be the same'
         }
+    },
+    passwordChangedAt:Date,
+    role:{
+        type:String,
+        enum:['user','guide','lead-guide','admin'],
+        default:'user'
     }
 });
 
@@ -53,10 +59,24 @@ userSchema.pre('save',async function(next){
     next();
 });
 
-//instance method
+//instance method 
+//check if password is correct
 userSchema.methods.correctPassword=async function(candidatePassword,userPassword){
     //return true or false
     return await bycrypt.compare(candidatePassword,userPassword);
+}
+
+userSchema.methods.changesPasswordAfter=function(jwtTimeStamp){
+
+    if(this.passwordChangedAt){
+        const changedTimeStamp=parseInt(this.passwordChangedAt.getTime()/1000,10);
+        //console.log(changedTimeStamp, jwtTimeStamp);
+        //true means that password changed
+        return jwtTimeStamp<changedTimeStamp;
+    }
+
+    //false means not changed
+    return false;
 }
 
 const User=mongoose.model('User',userSchema);
