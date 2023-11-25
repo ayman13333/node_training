@@ -117,3 +117,33 @@ exports.restrictTo=(...roles)=>{
        
     }
 }
+
+//forget password
+exports.forgetPassword= async(req,res,next)=>{
+    try {
+        //1-get user email
+        const user=await User.findOne({email:req.body.email});
+        if(!user) throw new ErrorClass("there is no user with this email",404);
+        //2-generate token
+        const resetToken=user.createPasswordResetToken();
+
+       // console.log(user);
+        await user.save({validateBeforeSave:false});
+        //res.status(200).send('xxxxxx');
+        
+        //3-send email to user
+
+
+    } catch (error) {
+        res.status(error.status?error.status:400).json({
+            success:'fail',
+            error:error.message
+        });
+    }
+    
+}
+
+//reset password
+exports.resetPassword=(req,res,next)=>{
+
+}

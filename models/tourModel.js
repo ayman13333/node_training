@@ -99,7 +99,7 @@ const tourSchema=new mongoose.Schema({
     
     //  doc = doc.toJSON();
     //  doc.ayman = 'ayman';
-     console.log(doc);
+    // console.log(doc);
     next();
   });
 

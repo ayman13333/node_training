@@ -1,7 +1,7 @@
 const mongoose=require('mongoose');
 const validator=require('validator');
 const bycrypt=require('bcryptjs');
-
+const crypto=require('crypto');
 
 const userSchema=new mongoose.Schema({
     name:{
@@ -35,12 +35,14 @@ const userSchema=new mongoose.Schema({
             message:'password and passwordConfirm must be the same'
         }
     },
-    passwordChangedAt:Date,
     role:{
         type:String,
         enum:['user','guide','lead-guide','admin'],
         default:'user'
-    }
+    },
+    passwordChangedAt:Date,
+    passwordResetToken:String,
+    passwordResetExpires:Date
 });
 
 
@@ -66,6 +68,7 @@ userSchema.methods.correctPassword=async function(candidatePassword,userPassword
     return await bycrypt.compare(candidatePassword,userPassword);
 }
 
+//if the user change password after jwt is created
 userSchema.methods.changesPasswordAfter=function(jwtTimeStamp){
 
     if(this.passwordChangedAt){
@@ -77,6 +80,17 @@ userSchema.methods.changesPasswordAfter=function(jwtTimeStamp){
 
     //false means not changed
     return false;
+}
+
+//
+userSchema.methods.createPasswordResetToken=function(){
+    const resetToken=crypto.randomBytes(32).toString('hex');
+
+    //store token in dp
+   this.passwordResetToken=crypto.createHash('sha256').update(resetToken).digest('hex');
+   this.passwordResetExpires=Date.now() + 10*60*1000;
+   
+   return resetToken;
 }
 
 const User=mongoose.model('User',userSchema);
