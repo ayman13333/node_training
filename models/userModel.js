@@ -50,14 +50,19 @@ const userSchema=new mongoose.Schema({
 userSchema.pre('save',async function(next){
     //password is not changed
     //run this function if password is modified
-
     if(!this.isModified('password')) return next();
     console.log('user document midleware pre');
     this.password=await bycrypt.hash(this.password,12);
     
     //delete password confirm field
     this.passwordConfirm=undefined;
+    next();
+});
 
+userSchema.pre('save',async function(next){
+    if(!this.isModified('password') || this.isNew) return next();
+
+    this.passwordChangedAt=Date.now()-1000;
     next();
 });
 
