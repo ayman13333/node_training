@@ -13,6 +13,18 @@ function singInToken(id) {
     });
 }
 
+const createSendToken=(user,statusCode,res)=>{
+    const token=singInToken(user._id);
+
+    res.status(statusCode).json({
+        status:'success',
+        token,
+        data:{
+            user: user
+        }
+    });
+}
+
 exports.signup= async(req,res,next)=>{
 
     try {
@@ -20,13 +32,8 @@ exports.signup= async(req,res,next)=>{
 
     const token=singInToken(newUser._id);
 
-    res.status(201).json({
-        status:'success',
-        token,
-        data:{
-            user: newUser
-        }
-    });
+    createSendToken(newUser,201,res);
+  
     } catch (error) {
         res.status(400).json({
             success:'fail',
@@ -47,15 +54,8 @@ exports.login=async(req,res,next)=>{
         let correct= user? await user.correctPassword(password,user.password) : false;
 
         if(!user || !correct)  throw new Error('Incorrect email or password');
-            
-
-        const token=singInToken(user._id);
-
-        res.status(200).json({
-            status:'success',
-            statusCode:200,
-            token
-        })
+        
+        createSendToken(user,200,res);
         
     } catch (error) {
         let status=400;
@@ -120,7 +120,7 @@ exports.restrictTo=(...roles)=>{
     }
 }
 
-//forget password
+//forget password when not login
 exports.forgetPassword= async(req,res,next)=>{
     try {
         //1-get user email
@@ -168,7 +168,7 @@ exports.forgetPassword= async(req,res,next)=>{
     
 }
 
-//reset password
+//reset password by email
 exports.resetPassword=async(req,res,next)=>{
     try {
         //1) get user based on token
@@ -187,13 +187,8 @@ exports.resetPassword=async(req,res,next)=>{
     await user.save();
 
     //4)log in the user
-    const token=singInToken(user._id);
+    createSendToken(user,200,res);
 
-    res.status(200).json({
-        status:'success',
-        statusCode:200,
-        token
-    })
     } catch (error) {
         res.status(error.status?error.status:400).json({
             success:'fail',
@@ -201,4 +196,29 @@ exports.resetPassword=async(req,res,next)=>{
         });
     }
     
+}
+
+//update password when login
+exports.updatePassword= async(req,res,next)=>{
+    try {
+        //1-get user
+        const user= await User.findById(req.user.id).select('+password');
+        //2-check if password is correct
+        if(!(await user.correctPassword(req.body.passwordCurrent,user.password)))
+        {
+            return new ErrorClass("your current password is wrong",401);
+        }
+        //3-if so update password
+        user.password=req.body.password;
+        user.passwordConfirm=req.body.passwordConfirm;
+
+        await user.save();
+        //4-log in user with new password
+        createSendToken(user,200,res);
+    } catch (error) {
+        res.status(error.status?error.status:400).json({
+            success:'fail',
+            error:error.message
+        });
+    }
 }
